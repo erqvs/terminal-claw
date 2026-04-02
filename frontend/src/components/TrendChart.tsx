@@ -10,6 +10,11 @@ interface TrendChartProps {
 
 type TimeRange = '7days' | '3weeks' | '3months';
 
+const formatAxisValue = (value: number) => {
+  if (value >= 1000) return `${(value / 1000).toFixed(0)}k`;
+  return value;
+};
+
 export default function TrendChart({ transactions }: TrendChartProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>('7days');
 
@@ -112,8 +117,8 @@ export default function TrendChart({ transactions }: TrendChartProps) {
       textStyle: { color: '#999' },
     },
     grid: {
-      left: '3%',
-      right: '4%',
+      left: '5%',
+      right: '6%',
       bottom: '3%',
       top: '40px',
       containLabel: true,
@@ -125,22 +130,38 @@ export default function TrendChart({ transactions }: TrendChartProps) {
       axisLine: { lineStyle: { color: '#333' } },
       axisLabel: { color: '#999' },
     },
-    yAxis: {
-      type: 'value',
-      axisLine: { show: false },
-      splitLine: { lineStyle: { color: '#222' } },
-      axisLabel: {
-        color: '#999',
-        formatter: (value: number) => {
-          if (value >= 1000) return `${(value / 1000).toFixed(0)}k`;
-          return value;
+    yAxis: [
+      {
+        type: 'value',
+        name: '收入',
+        position: 'left',
+        axisLine: { show: true, lineStyle: { color: '#52c41a' } },
+        splitLine: { lineStyle: { color: '#222' } },
+        axisLabel: {
+          color: '#52c41a',
+          formatter: formatAxisValue,
         },
+        nameTextStyle: { color: '#52c41a' },
       },
-    },
+      {
+        type: 'value',
+        name: '支出',
+        position: 'right',
+        alignTicks: true,
+        axisLine: { show: true, lineStyle: { color: '#ff4d4f' } },
+        splitLine: { show: false },
+        axisLabel: {
+          color: '#ff4d4f',
+          formatter: formatAxisValue,
+        },
+        nameTextStyle: { color: '#ff4d4f' },
+      },
+    ],
     series: [
       {
         name: '收入',
         type: 'line',
+        yAxisIndex: 0,
         smooth: true,
         symbol: 'circle',
         symbolSize: 6,
@@ -161,6 +182,7 @@ export default function TrendChart({ transactions }: TrendChartProps) {
       {
         name: '支出',
         type: 'line',
+        yAxisIndex: 1,
         smooth: true,
         symbol: 'circle',
         symbolSize: 6,
