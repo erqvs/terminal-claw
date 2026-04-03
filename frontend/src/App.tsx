@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, NavLink, useLocation, Navigate } from 'react-router-dom';
+import { useEffect, useLayoutEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { Button, Layout, Menu, ConfigProvider, theme, Spin } from 'antd';
 import type { MenuProps } from 'antd';
 import { DashboardIcon, TransactionIcon, WalletIcon, CreditIcon, TargetIcon, ScheduleIcon, TaskIcon, LogoutIcon, BudgetIcon, CategoryIcon } from './components/Icons';
@@ -22,6 +22,43 @@ const { Sider, Content } = Layout;
 
 const financePaths = ['/accounts', '/debts', '/budgets', '/goals', '/history', '/categories'];
 const quickAddPaths = ['/accounts', '/debts', '/budgets', '/goals', '/history'];
+const menuItems: MenuProps['items'] = [
+  {
+    key: '/',
+    icon: <DashboardIcon />,
+    label: '仪表盘',
+  },
+  {
+    key: 'tasks',
+    icon: <TaskIcon />,
+    label: '任务',
+    children: [
+      { key: '/tasks/cron', label: '定时任务' },
+      { key: '/tasks/digest-history', label: '简报历史' },
+    ],
+  },
+  {
+    key: 'courses',
+    icon: <ScheduleIcon />,
+    label: '课程',
+    children: [
+      { key: '/schedule', label: '课表' },
+    ],
+  },
+  {
+    key: 'finance',
+    icon: <WalletIcon />,
+    label: '财务',
+    children: [
+      { key: '/accounts', icon: <WalletIcon />, label: '账户' },
+      { key: '/debts', icon: <CreditIcon />, label: '负债' },
+      { key: '/categories', icon: <CategoryIcon />, label: '分类' },
+      { key: '/budgets', icon: <BudgetIcon />, label: '预算' },
+      { key: '/goals', icon: <TargetIcon />, label: '目标' },
+      { key: '/history', icon: <TransactionIcon />, label: '历史记录' },
+    ],
+  },
+];
 
 function getOpenMenuKey(pathname: string) {
   if (pathname.startsWith('/tasks')) {
@@ -40,9 +77,10 @@ function getOpenMenuKey(pathname: string) {
 }
 
 function MainLayout({ children }: { children: React.ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const activeOpenKey = getOpenMenuKey(location.pathname);
+  const [collapsed, setCollapsed] = useState(false);
   const [openKeys, setOpenKeys] = useState<string[]>(activeOpenKey ? [activeOpenKey] : []);
 
   const handleLogout = async () => {
@@ -50,7 +88,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
     window.location.href = '/login';
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (collapsed) {
       setOpenKeys([]);
       return;
@@ -59,46 +97,8 @@ function MainLayout({ children }: { children: React.ReactNode }) {
     setOpenKeys(activeOpenKey ? [activeOpenKey] : []);
   }, [activeOpenKey, collapsed]);
 
-  const menuItems: MenuProps['items'] = [
-    {
-      key: '/',
-      icon: <DashboardIcon />,
-      label: <NavLink to="/">仪表盘</NavLink>,
-    },
-    {
-      key: 'tasks',
-      icon: <TaskIcon />,
-      label: '任务',
-      children: [
-        { key: '/tasks/cron', label: <NavLink to="/tasks/cron">定时任务</NavLink> },
-        { key: '/tasks/digest-history', label: <NavLink to="/tasks/digest-history">简报历史</NavLink> },
-      ],
-    },
-    {
-      key: 'courses',
-      icon: <ScheduleIcon />,
-      label: '课程',
-      children: [
-        { key: '/schedule', label: <NavLink to="/schedule">课表</NavLink> },
-      ],
-    },
-    {
-      key: 'finance',
-      icon: <WalletIcon />,
-      label: '财务',
-      children: [
-        { key: '/accounts', icon: <WalletIcon />, label: <NavLink to="/accounts">账户</NavLink> },
-        { key: '/debts', icon: <CreditIcon />, label: <NavLink to="/debts">负债</NavLink> },
-        { key: '/categories', icon: <CategoryIcon />, label: <NavLink to="/categories">分类</NavLink> },
-        { key: '/budgets', icon: <BudgetIcon />, label: <NavLink to="/budgets">预算</NavLink> },
-        { key: '/goals', icon: <TargetIcon />, label: <NavLink to="/goals">目标</NavLink> },
-        { key: '/history', icon: <TransactionIcon />, label: <NavLink to="/history">历史记录</NavLink> },
-      ],
-    },
-  ];
-
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout hasSider style={{ minHeight: '100vh' }}>
       <Sider
         collapsible
         collapsed={collapsed}
@@ -120,9 +120,14 @@ function MainLayout({ children }: { children: React.ReactNode }) {
           <Menu
             mode="inline"
             selectedKeys={[location.pathname]}
-            openKeys={openKeys}
+            openKeys={collapsed ? [] : openKeys}
             items={menuItems}
             onOpenChange={(keys) => setOpenKeys(keys.slice(-1))}
+            onClick={({ key }) => {
+              if (typeof key === 'string' && key.startsWith('/')) {
+                navigate(key);
+              }
+            }}
           />
         </div>
         <div className="sider-footer">
@@ -154,14 +159,6 @@ function AppContent() {
   useEffect(() => {
     let active = true;
 
-    if (isLoginPage) {
-      setAuthState('unauthenticated');
-      return () => {
-        active = false;
-      };
-    }
-
-    setAuthState('checking');
     void verifyAuth().then((valid) => {
       if (!active) {
         return;
@@ -172,22 +169,25 @@ function AppContent() {
     return () => {
       active = false;
     };
-  }, [isLoginPage, location.pathname]);
-
-  // 登录页直接渲染，不做认证检查
-  if (isLoginPage) {
-    return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-      </Routes>
-    );
-  }
+  }, []);
 
   if (authState === 'checking') {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
         <Spin size="large" />
       </div>
+    );
+  }
+
+  if (isLoginPage) {
+    if (authState === 'authenticated') {
+      return <Navigate to="/" replace />;
+    }
+
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+      </Routes>
     );
   }
 

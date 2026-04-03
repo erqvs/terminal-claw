@@ -98,130 +98,93 @@ export default function Dashboard() {
     },
   ];
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-        <Spin size="large" />
-      </div>
-    );
-  }
-
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
         <h2 style={{ margin: 0 }}>仪表盘</h2>
       </div>
 
-      {/* 核心指标 */}
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={6}>
-          <Card>
-            <Statistic
-              title="总资产"
-              value={totalAssets}
-              precision={2}
-              prefix={<WalletIcon style={{ color: '#1890ff' }} />}
-              suffix="元"
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={6}>
-          <Card>
-            <Statistic
-              title="总负债"
-              value={totalDebts}
-              precision={2}
-              prefix={<ArrowDownIcon style={{ color: '#ff4d4f' }} />}
-              suffix="元"
-              valueStyle={{ color: '#ff4d4f' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={6}>
-          <Card>
-            <Statistic
-              title="净资产"
-              value={netWorth}
-              precision={2}
-              prefix={<WalletIcon style={{ color: netWorth >= 0 ? '#52c41a' : '#ff4d4f' }} />}
-              suffix="元"
-              valueStyle={{ color: netWorth >= 0 ? '#52c41a' : '#ff4d4f' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={6}>
-          <Card>
-            {nextGoal ? (
-              <div>
-                <div style={{ color: 'rgba(255,255,255,0.65)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <TargetIcon style={{ color: nextGoal.color }} />
-                  {nextGoal.name}
-                </div>
-                <div style={{ fontSize: 24, fontWeight: 'bold', color: nextGoal.color }}>
-                  还差 ¥{goalRemaining.toLocaleString()}
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div style={{ color: 'rgba(255,255,255,0.65)', marginBottom: 8 }}>下一目标</div>
-                <div style={{ fontSize: 16, color: '#666' }}>暂无进行中的目标</div>
-              </div>
-            )}
-          </Card>
-        </Col>
-      </Row>
-
-      {/* 收支趋势图 */}
-      <div style={{ marginBottom: 16 }}>
-        <TrendChart transactions={transactions} />
-      </div>
-
-      <Row gutter={16}>
-        {/* 资产账户概览 */}
-        <Col xs={24} lg={12} style={{ marginBottom: 16 }}>
-          <Card title="资产账户" style={{ height: '100%' }}>
-            {assetAccounts.length > 0 ? (
-              <List
-                dataSource={assetAccounts}
-                renderItem={item => (
-                  <List.Item>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{
-                          width: 24, height: 24, borderRadius: 4, background: item.color,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: '#fff', fontSize: 10, fontWeight: 'bold'
-                        }}>
-                          {item.name.charAt(0)}
-                        </div>
-                        <span>{item.name}</span>
-                      </div>
-                      <span style={{ color: '#52c41a', fontWeight: 'bold' }}>¥{Number(item.balance).toFixed(2)}</span>
+      {loading ? (
+        <Card style={{ minHeight: 360, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Spin size="large" />
+        </Card>
+      ) : (
+        <>
+          {/* 核心指标 */}
+          <Row gutter={16} style={{ marginBottom: 24 }}>
+            <Col xs={24} sm={6}>
+              <Card>
+                <Statistic
+                  title="总资产"
+                  value={totalAssets}
+                  precision={2}
+                  prefix={<WalletIcon style={{ color: '#1890ff' }} />}
+                  suffix="元"
+                  valueStyle={{ color: '#1890ff' }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={6}>
+              <Card>
+                <Statistic
+                  title="总负债"
+                  value={totalDebts}
+                  precision={2}
+                  prefix={<ArrowDownIcon style={{ color: '#ff4d4f' }} />}
+                  suffix="元"
+                  valueStyle={{ color: '#ff4d4f' }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={6}>
+              <Card>
+                <Statistic
+                  title="净资产"
+                  value={netWorth}
+                  precision={2}
+                  prefix={<WalletIcon style={{ color: netWorth >= 0 ? '#52c41a' : '#ff4d4f' }} />}
+                  suffix="元"
+                  valueStyle={{ color: netWorth >= 0 ? '#52c41a' : '#ff4d4f' }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={6}>
+              <Card>
+                {nextGoal ? (
+                  <div>
+                    <div style={{ color: 'rgba(255,255,255,0.65)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <TargetIcon style={{ color: nextGoal.color }} />
+                      {nextGoal.name}
                     </div>
-                  </List.Item>
+                    <div style={{ fontSize: 24, fontWeight: 'bold', color: nextGoal.color }}>
+                      还差 ¥{goalRemaining.toLocaleString()}
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ color: 'rgba(255,255,255,0.65)', marginBottom: 8 }}>下一目标</div>
+                    <div style={{ fontSize: 16, color: '#666' }}>暂无进行中的目标</div>
+                  </div>
                 )}
-              />
-            ) : (
-              <div style={{ textAlign: 'center', color: '#666', padding: 20 }}>暂无资产账户</div>
-            )}
-          </Card>
-        </Col>
+              </Card>
+            </Col>
+          </Row>
 
-        {/* 负债账户概览 */}
-        <Col xs={24} lg={12} style={{ marginBottom: 16 }}>
-          <Card title="负债账户" style={{ height: '100%' }}>
-            {debtAccounts.length > 0 ? (
-              <List
-                dataSource={debtAccounts}
-                renderItem={item => {
-                  const usage = getDebtUsagePercent(item);
-                  const availableAmount = getDebtAvailableAmount(item);
-                  const usedAmount = getDebtUsedAmount(item);
-                  return (
-                    <List.Item>
-                      <div style={{ width: '100%' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+          {/* 收支趋势图 */}
+          <div style={{ marginBottom: 16 }}>
+            <TrendChart transactions={transactions} />
+          </div>
+
+          <Row gutter={16}>
+            {/* 资产账户概览 */}
+            <Col xs={24} lg={12} style={{ marginBottom: 16 }}>
+              <Card title="资产账户" style={{ height: '100%' }}>
+                {assetAccounts.length > 0 ? (
+                  <List
+                    dataSource={assetAccounts}
+                    renderItem={item => (
+                      <List.Item>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <div style={{
                               width: 24, height: 24, borderRadius: 4, background: item.color,
@@ -232,44 +195,81 @@ export default function Dashboard() {
                             </div>
                             <span>{item.name}</span>
                           </div>
-                          <span style={{ color: '#1890ff', fontWeight: 'bold' }}>可用 ¥{availableAmount.toFixed(2)}</span>
+                          <span style={{ color: '#52c41a', fontWeight: 'bold' }}>¥{Number(item.balance).toFixed(2)}</span>
                         </div>
-                        {item.limit_amount > 0 && (
-                          <>
-                            <Progress
-                              percent={Math.min(usage, 100)}
-                              size="small"
-                              showInfo={false}
-                              strokeColor={usage > 80 ? '#ff4d4f' : usage > 50 ? '#faad14' : '#52c41a'}
-                            />
-                            <div style={{ color: '#666', fontSize: 12 }}>
-                              已用 ¥{usedAmount.toFixed(2)} / 总额度 ¥{Number(item.limit_amount).toFixed(2)}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </List.Item>
-                  );
-                }}
-              />
-            ) : (
-              <div style={{ textAlign: 'center', color: '#666', padding: 20 }}>暂无负债账户</div>
-            )}
-          </Card>
-        </Col>
-      </Row>
+                      </List.Item>
+                    )}
+                  />
+                ) : (
+                  <div style={{ textAlign: 'center', color: '#666', padding: 20 }}>暂无资产账户</div>
+                )}
+              </Card>
+            </Col>
 
-      {/* 最近交易 */}
-      <Card title="最近交易">
-        <Table
-          dataSource={recentTransactions}
-          columns={columns}
-          rowKey="id"
-          pagination={false}
-          size="small"
-          locale={{ emptyText: '暂无交易记录' }}
-        />
-      </Card>
+            {/* 负债账户概览 */}
+            <Col xs={24} lg={12} style={{ marginBottom: 16 }}>
+              <Card title="负债账户" style={{ height: '100%' }}>
+                {debtAccounts.length > 0 ? (
+                  <List
+                    dataSource={debtAccounts}
+                    renderItem={item => {
+                      const usage = getDebtUsagePercent(item);
+                      const availableAmount = getDebtAvailableAmount(item);
+                      const usedAmount = getDebtUsedAmount(item);
+                      return (
+                        <List.Item>
+                          <div style={{ width: '100%' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{
+                                  width: 24, height: 24, borderRadius: 4, background: item.color,
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  color: '#fff', fontSize: 10, fontWeight: 'bold'
+                                }}>
+                                  {item.name.charAt(0)}
+                                </div>
+                                <span>{item.name}</span>
+                              </div>
+                              <span style={{ color: '#1890ff', fontWeight: 'bold' }}>可用 ¥{availableAmount.toFixed(2)}</span>
+                            </div>
+                            {item.limit_amount > 0 && (
+                              <>
+                                <Progress
+                                  percent={Math.min(usage, 100)}
+                                  size="small"
+                                  showInfo={false}
+                                  strokeColor={usage > 80 ? '#ff4d4f' : usage > 50 ? '#faad14' : '#52c41a'}
+                                />
+                                <div style={{ color: '#666', fontSize: 12 }}>
+                                  已用 ¥{usedAmount.toFixed(2)} / 总额度 ¥{Number(item.limit_amount).toFixed(2)}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </List.Item>
+                      );
+                    }}
+                  />
+                ) : (
+                  <div style={{ textAlign: 'center', color: '#666', padding: 20 }}>暂无负债账户</div>
+                )}
+              </Card>
+            </Col>
+          </Row>
+
+          {/* 最近交易 */}
+          <Card title="最近交易">
+            <Table
+              dataSource={recentTransactions}
+              columns={columns}
+              rowKey="id"
+              pagination={false}
+              size="small"
+              locale={{ emptyText: '暂无交易记录' }}
+            />
+          </Card>
+        </>
+      )}
     </div>
   );
 }
