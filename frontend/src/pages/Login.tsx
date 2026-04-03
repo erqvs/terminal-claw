@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Form, Input, Button, message } from 'antd';
 import { LockOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
 import { login } from '../services/api';
 import { MoneyIcon } from '../components/Icons';
 
@@ -18,7 +17,6 @@ interface LoginResponse {
 export default function Login() {
   const [loading, setLoading] = useState(false);
   const [locked, setLocked] = useState(false);
-  const navigate = useNavigate();
 
   const onFinish = async (values: LoginForm) => {
     if (locked) return;
@@ -28,7 +26,7 @@ export default function Login() {
       const res: LoginResponse = await login(values.password);
       if (res.success) {
         message.success('登录成功');
-        navigate('/');
+        window.location.replace('/');
       } else {
         if (res.locked) {
           setLocked(true);

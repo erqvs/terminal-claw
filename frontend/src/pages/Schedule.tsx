@@ -559,169 +559,175 @@ export default function Schedule() {
     return rows;
   };
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-        <Spin size="large" />
-      </div>
-    );
-  }
-
   return (
     <div>
       <div style={{ marginBottom: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        {loading ? (
           <h2 style={{ margin: 0 }}>我的课表</h2>
-          <Select
-            value={currentWeek}
-            onChange={setCurrentWeek}
-            options={generateWeekOptions(semester?.total_weeks || 26)}
-            style={{ width: 120 }}
-          />
-          <Button onClick={() => semester && setCurrentWeek(semester.current_week || 1)}>
-            当前周
-          </Button>
-          {semester && (
-            <span style={{ color: '#888', fontSize: 12 }}>
-              {semester.name} | 开学日期: {formatDateLabel(semester.start_date)}
-            </span>
-          )}
-        </div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0 }}>我的课表</h2>
+              <Select
+                value={currentWeek}
+                onChange={setCurrentWeek}
+                options={generateWeekOptions(semester?.total_weeks || 26)}
+                style={{ width: 120 }}
+              />
+              <Button onClick={() => semester && setCurrentWeek(semester.current_week || 1)}>
+                当前周
+              </Button>
+              {semester && (
+                <span style={{ color: '#888', fontSize: 12 }}>
+                  {semester.name} | 开学日期: {formatDateLabel(semester.start_date)}
+                </span>
+              )}
+            </div>
 
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto' }}>
-          <span style={{
-            padding: '4px 10px',
-            borderRadius: 999,
-            background: 'rgba(82,196,26,0.14)',
-            border: '1px solid rgba(82,196,26,0.24)',
-            color: 'rgba(255,255,255,0.88)',
-            fontSize: 12,
-          }}>
-            当前周: 第 {currentWeek} 周
-          </span>
-          <span style={{
-            padding: '4px 10px',
-            borderRadius: 999,
-            background: 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(255,255,255,0.10)',
-            color: 'rgba(255,255,255,0.72)',
-            fontSize: 12,
-          }}>
-            亮色表示本周课程
-          </span>
-          <span style={{
-            padding: '4px 10px',
-            borderRadius: 999,
-            background: 'rgba(24,144,255,0.12)',
-            border: '1px solid rgba(24,144,255,0.24)',
-            color: 'rgba(255,255,255,0.72)',
-            fontSize: 12,
-          }}>
-            点击卡片可查看详情
-          </span>
-        </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto' }}>
+              <span style={{
+                padding: '4px 10px',
+                borderRadius: 999,
+                background: 'rgba(82,196,26,0.14)',
+                border: '1px solid rgba(82,196,26,0.24)',
+                color: 'rgba(255,255,255,0.88)',
+                fontSize: 12,
+              }}>
+                当前周: 第 {currentWeek} 周
+              </span>
+              <span style={{
+                padding: '4px 10px',
+                borderRadius: 999,
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                color: 'rgba(255,255,255,0.72)',
+                fontSize: 12,
+              }}>
+                亮色表示本周课程
+              </span>
+              <span style={{
+                padding: '4px 10px',
+                borderRadius: 999,
+                background: 'rgba(24,144,255,0.12)',
+                border: '1px solid rgba(24,144,255,0.24)',
+                color: 'rgba(255,255,255,0.72)',
+                fontSize: 12,
+              }}>
+                点击卡片可查看详情
+              </span>
+            </div>
+          </>
+        )}
       </div>
 
-      <Card style={{ border: '1px solid #303030', background: 'linear-gradient(180deg, rgba(31,31,31,0.98), rgba(20,20,20,0.96))' }}>
-        <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', minWidth: 980, borderCollapse: 'separate', borderSpacing: 6, tableLayout: 'fixed' }}>
-          <thead>
-            <tr>
-              <th style={{
-                width: 92,
-                padding: '10px 8px',
-                borderBottom: '1px solid #333',
-                background: 'rgba(255,255,255,0.04)',
-                borderRadius: 12,
-                color: 'rgba(255,255,255,0.72)',
-              }}>
-                时间
-              </th>
-              {weekDays.map((day) => (
-                <th
-                  key={day}
-                  style={{
+      {loading ? (
+        <Card style={{ minHeight: 420, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Spin size="large" />
+        </Card>
+      ) : (
+        <>
+          <Card style={{ border: '1px solid #303030', background: 'linear-gradient(180deg, rgba(31,31,31,0.98), rgba(20,20,20,0.96))' }}>
+            <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', minWidth: 980, borderCollapse: 'separate', borderSpacing: 6, tableLayout: 'fixed' }}>
+              <thead>
+                <tr>
+                  <th style={{
+                    width: 92,
                     padding: '10px 8px',
                     borderBottom: '1px solid #333',
                     background: 'rgba(255,255,255,0.04)',
                     borderRadius: 12,
-                    color: 'rgba(255,255,255,0.82)',
-                    fontWeight: 600,
-                  }}
-                >
-                  {day}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>{buildTableRows()}</tbody>
-        </table>
-        </div>
-      </Card>
+                    color: 'rgba(255,255,255,0.72)',
+                  }}>
+                    时间
+                  </th>
+                  {weekDays.map((day) => (
+                    <th
+                      key={day}
+                      style={{
+                        padding: '10px 8px',
+                        borderBottom: '1px solid #333',
+                        background: 'rgba(255,255,255,0.04)',
+                        borderRadius: 12,
+                        color: 'rgba(255,255,255,0.82)',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {day}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>{buildTableRows()}</tbody>
+            </table>
+            </div>
+          </Card>
 
-      <Modal
-        title={editingCourse ? '编辑课程' : '添加课程'}
-        open={isModalOpen}
-        onOk={handleSaveCourse}
-        onCancel={handleCloseModal}
-        okText="保存"
-        cancelText="取消"
-        footer={
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, width: '100%' }}>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {editingCourse && (
-                <Button onClick={handleCreateAlternateCourse}>
-                  新增轮换课
-                </Button>
-              )}
-              {editingCourse?.id && (
-                <Button danger onClick={() => handleDeleteCourse(editingCourse.id!)}>
-                  删除课程
-                </Button>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Button onClick={handleCloseModal}>取消</Button>
-              <Button type="primary" onClick={handleSaveCourse}>保存</Button>
-            </div>
-          </div>
-        }
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="name"
-            label="课程名称"
-            rules={[{ required: true, message: '请输入课程名称' }]}
+          <Modal
+            title={editingCourse ? '编辑课程' : '添加课程'}
+            open={isModalOpen}
+            onOk={handleSaveCourse}
+            onCancel={handleCloseModal}
+            okText="保存"
+            cancelText="取消"
+            footer={
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, width: '100%' }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {editingCourse && (
+                    <Button onClick={handleCreateAlternateCourse}>
+                      新增轮换课
+                    </Button>
+                  )}
+                  {editingCourse?.id && (
+                    <Button danger onClick={() => handleDeleteCourse(editingCourse.id!)}>
+                      删除课程
+                    </Button>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Button onClick={handleCloseModal}>取消</Button>
+                  <Button type="primary" onClick={handleSaveCourse}>保存</Button>
+                </div>
+              </div>
+            }
           >
-            <Input placeholder="如：高等数学" />
-          </Form.Item>
-          <Form.Item name="teacher" label="授课教师">
-            <Input placeholder="如：张教授" />
-          </Form.Item>
-          <Form.Item name="location" label="上课地点">
-            <Input placeholder="如：教1-101" />
-          </Form.Item>
-          <Form.Item name="color" label="课程颜色">
-            <ColorPicker format="hex" />
-          </Form.Item>
-          <Form.Item name="time_slot" label="上课节次" rules={[{ required: true, message: '请选择上课节次' }]}>
-            <Select
-              mode="multiple"
-              placeholder="选择节次"
-              options={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({ value: n, label: `第${n}节` }))}
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
-          <Form.Item name="weeks" label="上课周次">
-            <Select
-              mode="multiple"
-              placeholder="选择周次"
-              options={generateWeekOptions(semester?.total_weeks || 26)}
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+            <Form form={form} layout="vertical">
+              <Form.Item
+                name="name"
+                label="课程名称"
+                rules={[{ required: true, message: '请输入课程名称' }]}
+              >
+                <Input placeholder="如：高等数学" />
+              </Form.Item>
+              <Form.Item name="teacher" label="授课教师">
+                <Input placeholder="如：张教授" />
+              </Form.Item>
+              <Form.Item name="location" label="上课地点">
+                <Input placeholder="如：教1-101" />
+              </Form.Item>
+              <Form.Item name="color" label="课程颜色">
+                <ColorPicker format="hex" />
+              </Form.Item>
+              <Form.Item name="time_slot" label="上课节次" rules={[{ required: true, message: '请选择上课节次' }]}>
+                <Select
+                  mode="multiple"
+                  placeholder="选择节次"
+                  options={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({ value: n, label: `第${n}节` }))}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+              <Form.Item name="weeks" label="上课周次">
+                <Select
+                  mode="multiple"
+                  placeholder="选择周次"
+                  options={generateWeekOptions(semester?.total_weeks || 26)}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            </Form>
+          </Modal>
+        </>
+      )}
     </div>
   );
 }

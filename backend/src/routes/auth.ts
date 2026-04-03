@@ -4,7 +4,6 @@ import { APP_PASSWORD, AUTH_COOKIE_NAME, JWT_SECRET, timingSafeEqualString } fro
 
 const router = Router();
 const TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 
 // 安全配置
 const MAX_ATTEMPTS = 5;           // 最大失败次数
@@ -122,21 +121,38 @@ function setNoStore(res: Response): void {
   res.setHeader('Cache-Control', 'no-store');
 }
 
-function setSessionCookie(res: Response, token: string): void {
+function isSecureRequest(req: Request): boolean {
+  if (req.secure) {
+    return true;
+  }
+
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  if (typeof forwardedProto === 'string') {
+    return forwardedProto.split(',')[0]?.trim().toLowerCase() === 'https';
+  }
+
+  if (Array.isArray(forwardedProto)) {
+    return forwardedProto.some((value) => value.trim().toLowerCase() === 'https');
+  }
+
+  return false;
+}
+
+function setSessionCookie(req: Request, res: Response, token: string): void {
   res.cookie(AUTH_COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'strict',
-    secure: COOKIE_SECURE,
+    secure: isSecureRequest(req),
     maxAge: TOKEN_MAX_AGE_MS,
     path: '/',
   });
 }
 
-function clearSessionCookie(res: Response): void {
+function clearSessionCookie(req: Request, res: Response): void {
   res.clearCookie(AUTH_COOKIE_NAME, {
     httpOnly: true,
     sameSite: 'strict',
-    secure: COOKIE_SECURE,
+    secure: isSecureRequest(req),
     path: '/',
   });
 }
@@ -187,7 +203,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
   }
 
   if (!verifyToken(token)) {
-    clearSessionCookie(res);
+    clearSessionCookie(req, res);
     res.status(401).json({ error: 'Token 无效或已过期' });
     return;
   }
@@ -231,7 +247,7 @@ router.post('/login', (req: Request, res: Response): void => {
   if (timingSafeEqualString(password, APP_PASSWORD)) {
     recordSuccess(ip);
     const token = generateToken();
-    setSessionCookie(res, token);
+    setSessionCookie(req, res, token);
     res.json({ success: true, token });
   } else {
     recordFailure(ip);
@@ -266,15 +282,15 @@ router.get('/verify', (req: Request, res: Response): void => {
 
   const valid = verifyToken(token);
   if (!valid) {
-    clearSessionCookie(res);
+    clearSessionCookie(req, res);
   }
 
   res.json({ valid });
 });
 
-router.post('/logout', (_req: Request, res: Response): void => {
+router.post('/logout', (req: Request, res: Response): void => {
   setNoStore(res);
-  clearSessionCookie(res);
+  clearSessionCookie(req, res);
   res.json({ success: true });
 });
 

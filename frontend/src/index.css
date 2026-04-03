@@ -7,4 +7,6 @@ body {
 
 html {
   background: #141414 !important;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
