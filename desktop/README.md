@@ -45,12 +45,3 @@ git push origin v0.1.0
 ## macOS auto-update note
 
 Electron's macOS auto-update flow expects signed builds. The current scaffold sets up the update client and GitHub release flow first. Before relying on production auto-update on macOS, add signing and notarization in your release workflow.
-
-GitHub repository secrets expected by the workflow:
-
-- `APPLE_CERTIFICATE_P12`
-- `APPLE_CERTIFICATE_PASSWORD`
-- `KEYCHAIN_PASSWORD`
-- `APPLE_ID`
-- `APPLE_APP_SPECIFIC_PASSWORD`
-- `APPLE_TEAM_ID`
