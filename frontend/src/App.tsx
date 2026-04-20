@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { Button, Layout, Menu, ConfigProvider, theme, Spin } from 'antd';
 import type { MenuProps } from 'antd';
-import { DashboardIcon, TransactionIcon, WalletIcon, CreditIcon, TargetIcon, ScheduleIcon, TaskIcon, LogoutIcon, BudgetIcon, CategoryIcon } from './components/Icons';
+import { DashboardIcon, TransactionIcon, WalletIcon, CreditIcon, TargetIcon, ScheduleIcon, TaskIcon, LogoutIcon, BudgetIcon, CategoryIcon, PersonalIcon } from './components/Icons';
 import QuickAddButton from './components/QuickAddButton';
 import { logout, verifyAuth } from './services/api';
 import Dashboard from './pages/Dashboard';
@@ -15,7 +15,9 @@ import Categories from './pages/Categories';
 import Login from './pages/Login';
 import Schedule from './pages/Schedule';
 import OpenClawCron from './pages/OpenClawCron';
+import OpenClawMemory from './pages/OpenClawMemory';
 import DigestHistory from './pages/DigestHistory';
+import Tasks from './pages/Tasks';
 import './App.css';
 
 const { Sider, Content } = Layout;
@@ -29,11 +31,20 @@ const menuItems: MenuProps['items'] = [
     label: '仪表盘',
   },
   {
+    key: 'personal',
+    icon: <PersonalIcon />,
+    label: '个人',
+    children: [
+      { key: '/personal/tasks', label: '任务清单' },
+    ],
+  },
+  {
     key: 'tasks',
     icon: <TaskIcon />,
     label: '任务',
     children: [
       { key: '/tasks/cron', label: '定时任务' },
+      { key: '/tasks/memory', label: '记忆管理' },
       { key: '/tasks/digest-history', label: '简报历史' },
     ],
   },
@@ -61,6 +72,10 @@ const menuItems: MenuProps['items'] = [
 ];
 
 function getOpenMenuKey(pathname: string) {
+  if (pathname.startsWith('/personal')) {
+    return 'personal';
+  }
+
   if (pathname.startsWith('/tasks')) {
     return 'tasks';
   }
@@ -201,8 +216,11 @@ function AppContent() {
     <MainLayout>
       <Routes>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/personal" element={<Navigate to="/personal/tasks" replace />} />
+        <Route path="/personal/tasks" element={<Tasks />} />
         <Route path="/tasks" element={<Navigate to="/tasks/cron" replace />} />
         <Route path="/tasks/cron" element={<OpenClawCron />} />
+        <Route path="/tasks/memory" element={<OpenClawMemory />} />
         <Route path="/tasks/digest-history" element={<DigestHistory />} />
         <Route path="/schedule" element={<Schedule />} />
         <Route path="/accounts" element={<Accounts />} />

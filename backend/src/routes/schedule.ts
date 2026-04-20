@@ -3,6 +3,7 @@ import pool from '../config/database';
 
 const router = Router();
 const MAX_TIME_SLOT = 12;
+const VALID_OWNERS = new Set(['me', 'partner']);
 
 interface NormalizedCoursePayload {
   name: string;
@@ -12,6 +13,7 @@ interface NormalizedCoursePayload {
   dayOfWeek: number;
   timeSlot: number[];
   weeks: number[];
+  owner: string;
 }
 
 function parseJsonArray(value: unknown): unknown[] {
@@ -66,9 +68,17 @@ function coursesConflict(
 function normalizeStoredCourse(row: any) {
   return {
     ...row,
+    owner: typeof row.owner === 'string' && VALID_OWNERS.has(row.owner) ? row.owner : 'me',
     time_slot: normalizeNumberList(row.time_slot, 1, MAX_TIME_SLOT),
     weeks: normalizeNumberList(row.weeks, 1),
   };
+}
+
+function normalizeOwner(value: unknown): string {
+  if (typeof value === 'string' && VALID_OWNERS.has(value)) {
+    return value;
+  }
+  return 'me';
 }
 
 function parseCoursePayload(body: any): { data?: NormalizedCoursePayload; error?: string } {
@@ -76,6 +86,7 @@ function parseCoursePayload(body: any): { data?: NormalizedCoursePayload; error?
   const dayOfWeek = Number(body.day_of_week);
   const timeSlot = normalizeNumberList(body.time_slot, 1, MAX_TIME_SLOT);
   const weeks = normalizeNumberList(body.weeks, 1);
+  const owner = normalizeOwner(body.owner);
 
   if (!name) {
     return { error: '课程名称不能为空' };
@@ -102,6 +113,7 @@ function parseCoursePayload(body: any): { data?: NormalizedCoursePayload; error?
       dayOfWeek,
       timeSlot,
       weeks,
+      owner,
     },
   };
 }
@@ -110,12 +122,13 @@ async function findConflictingCourse(
   dayOfWeek: number,
   timeSlot: number[],
   weeks: number[],
+  owner: string,
   excludeId?: number
 ): Promise<number | null> {
   const sql = excludeId === undefined
-    ? 'SELECT id, time_slot, weeks FROM schedule_courses WHERE day_of_week = ?'
-    : 'SELECT id, time_slot, weeks FROM schedule_courses WHERE day_of_week = ? AND id != ?';
-  const params = excludeId === undefined ? [dayOfWeek] : [dayOfWeek, excludeId];
+    ? 'SELECT id, time_slot, weeks FROM schedule_courses WHERE day_of_week = ? AND owner = ?'
+    : 'SELECT id, time_slot, weeks FROM schedule_courses WHERE day_of_week = ? AND owner = ? AND id != ?';
+  const params = excludeId === undefined ? [dayOfWeek, owner] : [dayOfWeek, owner, excludeId];
   const [rows] = await pool.execute(sql, params);
 
   for (const row of rows as any[]) {
@@ -128,12 +141,22 @@ async function findConflictingCourse(
   return null;
 }
 
-// 获取所有课程
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const [rows] = await pool.execute(
-      'SELECT * FROM schedule_courses ORDER BY day_of_week, time_slot'
-    );
+    const ownerFilter = req.query.owner;
+    let sql = 'SELECT * FROM schedule_courses';
+    const params: string[] = [];
+
+    if (typeof ownerFilter === 'string' && VALID_OWNERS.has(ownerFilter)) {
+      sql += ' WHERE owner = ?';
+      params.push(ownerFilter);
+    }
+
+    sql += ' ORDER BY owner, day_of_week, time_slot';
+
+    const [rows] = params.length > 0
+      ? await pool.execute(sql, params)
+      : await pool.execute(sql);
     const courses = (rows as any[]).map(normalizeStoredCourse);
     res.json(courses);
   } catch (error) {
@@ -142,7 +165,6 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// 创建课程
 router.post('/', async (req: Request, res: Response) => {
   const { data, error } = parseCoursePayload(req.body);
 
@@ -152,7 +174,7 @@ router.post('/', async (req: Request, res: Response) => {
   }
 
   try {
-    const conflictingCourseId = await findConflictingCourse(data.dayOfWeek, data.timeSlot, data.weeks);
+    const conflictingCourseId = await findConflictingCourse(data.dayOfWeek, data.timeSlot, data.weeks, data.owner);
 
     if (conflictingCourseId !== null) {
       res.status(409).json({ error: '所选节次在这些周次已有其他课程' });
@@ -163,9 +185,9 @@ router.post('/', async (req: Request, res: Response) => {
     const weeksJson = JSON.stringify(data.weeks);
 
     const [result] = await pool.execute(
-      `INSERT INTO schedule_courses (name, teacher, location, color, day_of_week, time_slot, weeks)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [data.name, data.teacher, data.location, data.color, data.dayOfWeek, timeSlotJson, weeksJson]
+      `INSERT INTO schedule_courses (name, teacher, location, color, day_of_week, time_slot, weeks, owner)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [data.name, data.teacher, data.location, data.color, data.dayOfWeek, timeSlotJson, weeksJson, data.owner]
     );
 
     res.status(201).json({
@@ -177,6 +199,7 @@ router.post('/', async (req: Request, res: Response) => {
       day_of_week: data.dayOfWeek,
       time_slot: data.timeSlot,
       weeks: data.weeks,
+      owner: data.owner,
     });
   } catch (error) {
     console.error('Error saving course:', error);
@@ -184,7 +207,6 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// 更新课程
 router.put('/:id', async (req: Request, res: Response) => {
   const courseId = Number(req.params.id);
   const { data, error } = parseCoursePayload(req.body);
@@ -200,7 +222,7 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 
   try {
-    const conflictingCourseId = await findConflictingCourse(data.dayOfWeek, data.timeSlot, data.weeks, courseId);
+    const conflictingCourseId = await findConflictingCourse(data.dayOfWeek, data.timeSlot, data.weeks, data.owner, courseId);
 
     if (conflictingCourseId !== null) {
       res.status(409).json({ error: '所选节次在这些周次已有其他课程' });
@@ -211,8 +233,8 @@ router.put('/:id', async (req: Request, res: Response) => {
     const weeksJson = JSON.stringify(data.weeks);
 
     const [result] = await pool.execute(
-      'UPDATE schedule_courses SET name = ?, teacher = ?, location = ?, color = ?, day_of_week = ?, time_slot = ?, weeks = ? WHERE id = ?',
-      [data.name, data.teacher, data.location, data.color, data.dayOfWeek, timeSlotJson, weeksJson, courseId]
+      'UPDATE schedule_courses SET name = ?, teacher = ?, location = ?, color = ?, day_of_week = ?, time_slot = ?, weeks = ?, owner = ? WHERE id = ?',
+      [data.name, data.teacher, data.location, data.color, data.dayOfWeek, timeSlotJson, weeksJson, data.owner, courseId]
     );
 
     if ((result as any).affectedRows === 0) {
@@ -227,7 +249,6 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// 删除课程
 router.delete('/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
 
@@ -240,7 +261,6 @@ router.delete('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// 批量导入课程
 router.post('/import', async (req: Request, res: Response) => {
   const { courses } = req.body;
 
@@ -259,7 +279,7 @@ router.post('/import', async (req: Request, res: Response) => {
     }
 
     const conflictingCourse = normalizedCourses.find((existingCourse) => (
-      existingCourse.dayOfWeek === data.dayOfWeek && coursesConflict(existingCourse, data)
+      existingCourse.owner === data.owner && existingCourse.dayOfWeek === data.dayOfWeek && coursesConflict(existingCourse, data)
     ));
 
     if (conflictingCourse) {
@@ -275,14 +295,12 @@ router.post('/import', async (req: Request, res: Response) => {
   try {
     await connection.beginTransaction();
 
-    // 清空现有课程
     await connection.execute('DELETE FROM schedule_courses');
 
-    // 批量插入新课程
     for (const course of normalizedCourses) {
       await connection.execute(
-        'INSERT INTO schedule_courses (name, teacher, location, color, day_of_week, time_slot, weeks) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [course.name, course.teacher, course.location, course.color, course.dayOfWeek, JSON.stringify(course.timeSlot), JSON.stringify(course.weeks)]
+        'INSERT INTO schedule_courses (name, teacher, location, color, day_of_week, time_slot, weeks, owner) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [course.name, course.teacher, course.location, course.color, course.dayOfWeek, JSON.stringify(course.timeSlot), JSON.stringify(course.weeks), course.owner]
       );
     }
 

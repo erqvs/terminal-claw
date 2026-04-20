@@ -17,6 +17,8 @@ services:
     environment:
       - NODE_ENV=production
       - TZ=Asia/Shanghai
+    volumes:
+      - /home/openclaw-custom/.openclaw:/root/.openclaw:ro
     networks:
       - proxy-network
     depends_on: []

@@ -565,9 +565,10 @@ export interface ScheduleCourse {
   teacher?: string;
   location?: string;
   color: string;
-  day_of_week: number;  // 0-6 (周一到周日)
-  time_slot: number[];  // 节次数组，如 [1, 2] 表示第1-2节
+  day_of_week: number;
+  time_slot: number[];
   weeks: number[];
+  owner: string;
 }
 
 export interface SemesterConfig {
@@ -576,12 +577,22 @@ export interface SemesterConfig {
   start_date: string;
   end_date: string;
   total_weeks: number;
+  partner_week_offset: number;
   is_active: number;
   current_week?: number;
 }
 
-export async function getScheduleCourses(): Promise<ScheduleCourse[]> {
-  const res = await authFetch(`${API_BASE}/schedule`, { headers: getAuthHeaders() });
+export interface TimeSlotConfig {
+  id: number;
+  owner: string;
+  slot_number: number;
+  start_time: string;
+  end_time: string;
+}
+
+export async function getScheduleCourses(owner?: string): Promise<ScheduleCourse[]> {
+  const url = owner ? `${API_BASE}/schedule?owner=${owner}` : `${API_BASE}/schedule`;
+  const res = await authFetch(url, { headers: getAuthHeaders() });
   if (!res.ok) throw new Error('Failed to fetch schedule');
   return res.json();
 }
@@ -670,4 +681,81 @@ export async function deleteSemester(id: number): Promise<void> {
     headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error('Failed to delete semester');
+}
+
+// Time Slots
+export async function getTimeSlots(owner?: string): Promise<TimeSlotConfig[]> {
+  const url = owner ? `${API_BASE}/time-slots?owner=${owner}` : `${API_BASE}/time-slots`;
+  const res = await authFetch(url, { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error('Failed to fetch time slots');
+  return res.json();
+}
+
+export async function updateTimeSlots(owner: string, slots: { slot_number: number; start_time: string; end_time: string }[]): Promise<{ success: boolean; message: string }> {
+  const res = await authFetch(`${API_BASE}/time-slots/batch`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ owner, slots }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to update time slots');
+  }
+  return res.json();
+}
+
+// OpenClaw Memory
+export async function getOpenClawMemoryStatus(): Promise<{ agents: any[] }> {
+  const res = await authFetch(`${API_BASE}/openclaw-memory/status`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(await readErrorMessage(res, '获取记忆状态失败'));
+  return res.json();
+}
+
+export async function getOpenClawMemoryFiles(): Promise<{ files: any[] }> {
+  const res = await authFetch(`${API_BASE}/openclaw-memory/files`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(await readErrorMessage(res, '获取记忆文件失败'));
+  return res.json();
+}
+
+export async function searchOpenClawMemory(query: string, limit?: number): Promise<{ results: any[]; query: string }> {
+  const params = new URLSearchParams();
+  params.set('q', query);
+  if (limit) params.set('limit', String(limit));
+  const res = await authFetch(`${API_BASE}/openclaw-memory/search?${params.toString()}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(await readErrorMessage(res, '搜索记忆失败'));
+  return res.json();
+}
+
+export async function reindexOpenClawMemory(): Promise<{ success: boolean }> {
+  const res = await authFetch(`${API_BASE}/openclaw-memory/reindex`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(await readErrorMessage(res, '重新索引失败'));
+  return res.json();
+}
+
+export async function createOpenClawMemoryFile(name: string, content: string): Promise<{ success: boolean }> {
+  const res = await authFetch(`${API_BASE}/openclaw-memory/files`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ name, content }),
+  });
+  if (!res.ok) throw new Error(await readErrorMessage(res, '创建记忆文件失败'));
+  return res.json();
+}
+
+export async function deleteOpenClawMemoryFile(name: string): Promise<{ success: boolean }> {
+  const res = await authFetch(`${API_BASE}/openclaw-memory/files/${encodeURIComponent(name)}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(await readErrorMessage(res, '删除记忆文件失败'));
+  return res.json();
 }

@@ -7,9 +7,11 @@ import accountsRouter from './routes/accounts';
 import budgetsRouter from './routes/budgets';
 import goalsRouter from './routes/goals';
 import openclawCronRouter from './routes/openclawCron';
+import openclawMemoryRouter from './routes/openclawMemory';
 import digestHistoryRouter from './routes/digestHistory';
 import scheduleRouter from './routes/schedule';
 import semesterRouter from './routes/semester';
+import timeSlotsRouter from './routes/timeSlots';
 import authRouter, { authMiddleware } from './routes/auth';
 import aiRouter from './routes/ai';
 import { validateSecurityConfiguration } from './utils/security';
@@ -90,9 +92,11 @@ app.use('/api/accounts', authMiddleware, accountsRouter);
 app.use('/api/budgets', authMiddleware, budgetsRouter);
 app.use('/api/goals', authMiddleware, goalsRouter);
 app.use('/api/openclaw-cron', authMiddleware, openclawCronRouter);
+app.use('/api/openclaw-memory', authMiddleware, openclawMemoryRouter);
 app.use('/api/digest-history', authMiddleware, digestHistoryRouter);
 app.use('/api/schedule', authMiddleware, scheduleRouter);
 app.use('/api/semester', authMiddleware, semesterRouter);
+app.use('/api/time-slots', authMiddleware, timeSlotsRouter);
 
 // 全局错误处理
 app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {

@@ -1,2 +1,5 @@
 backend/.env
 schedule_import.json
+backend/dist/
+node_modules/
+frontend/dist/
