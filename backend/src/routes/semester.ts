@@ -71,8 +71,8 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     const [result] = await pool.execute(
-      'INSERT INTO semester_config (name, start_date, end_date, total_weeks, is_active) VALUES (?, ?, ?, ?, ?)',
-      [name, start_date, end_date, total_weeks || 26, is_active ? 1 : 0]
+      'INSERT INTO semester_config (name, start_date, end_date, total_weeks, partner_week_offset, is_active) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, start_date, end_date, total_weeks || 26, req.body.partner_week_offset ?? -1, is_active ? 1 : 0]
     );
 
     res.status(201).json({
@@ -81,6 +81,7 @@ router.post('/', async (req: Request, res: Response) => {
       start_date,
       end_date,
       total_weeks: total_weeks || 26,
+      partner_week_offset: req.body.partner_week_offset ?? -1,
       is_active: is_active ? 1 : 0,
     });
   } catch (error) {
@@ -93,17 +94,24 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   const { name, start_date, end_date, total_weeks, is_active } = req.body;
+  const partnerWeekOffset = req.body.partner_week_offset !== undefined ? req.body.partner_week_offset : undefined;
 
   try {
-    // 如果设为激活，先取消其他学期的激活状态
     if (is_active) {
       await pool.execute('UPDATE semester_config SET is_active = 0');
     }
 
-    await pool.execute(
-      'UPDATE semester_config SET name = ?, start_date = ?, end_date = ?, total_weeks = ?, is_active = ? WHERE id = ?',
-      [name, start_date, end_date, total_weeks, is_active ? 1 : 0, id]
-    );
+    if (partnerWeekOffset !== undefined) {
+      await pool.execute(
+        'UPDATE semester_config SET name = ?, start_date = ?, end_date = ?, total_weeks = ?, partner_week_offset = ?, is_active = ? WHERE id = ?',
+        [name, start_date, end_date, total_weeks, partnerWeekOffset, is_active ? 1 : 0, id]
+      );
+    } else {
+      await pool.execute(
+        'UPDATE semester_config SET name = ?, start_date = ?, end_date = ?, total_weeks = ?, is_active = ? WHERE id = ?',
+        [name, start_date, end_date, total_weeks, is_active ? 1 : 0, id]
+      );
+    }
 
     res.json({ success: true });
   } catch (error) {

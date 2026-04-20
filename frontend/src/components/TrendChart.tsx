@@ -72,7 +72,7 @@ export default function TrendChart({ transactions }: TrendChartProps) {
     // 聚合交易数据
     transactions.forEach(t => {
       const date = dayjs(t.date);
-      if (date.isBefore(startDate)) return;
+      if (date.isBefore(startDate, 'day')) return;
 
       let key: string;
       if (groupBy === 'month') {

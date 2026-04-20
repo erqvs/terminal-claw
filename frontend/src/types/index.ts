@@ -169,3 +169,41 @@ export interface Transaction {
   description: string;
   date: string;
 }
+
+export interface OpenClawMemoryFile {
+  name: string;
+  path: string;
+  size: number;
+  modified: string;
+  content?: string;
+}
+
+export interface OpenClawMemorySearchResult {
+  path: string;
+  text: string;
+  score?: number;
+  source?: string;
+  start_line?: number;
+  end_line?: number;
+  snippet?: string;
+}
+
+export interface OpenClawMemoryAgentStatus {
+  agentId: string;
+  status: {
+    backend: string;
+    files: number;
+    chunks: number;
+    dirty: boolean;
+    dbPath: string;
+    sources: string[];
+    custom?: {
+      searchMode: string;
+      providerUnavailableReason?: string;
+    };
+  };
+  scan?: {
+    issues: string[];
+    totalFiles: number;
+  };
+}

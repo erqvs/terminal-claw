@@ -23,7 +23,7 @@ import {
 import { AI_API_KEY, timingSafeEqualString } from '../utils/security';
 
 const router = Router();
-const COURSE_TIME_SLOTS = [
+const DEFAULT_TIME_SLOTS = [
   { key: 1, start: '08:10', end: '08:55' },
   { key: 2, start: '09:05', end: '09:50' },
   { key: 3, start: '10:10', end: '10:55' },
@@ -37,7 +37,8 @@ const COURSE_TIME_SLOTS = [
   { key: 11, start: '20:00', end: '20:45' },
   { key: 12, start: '20:50', end: '21:35' },
 ];
-const MAX_TIME_SLOT = COURSE_TIME_SLOTS.length;
+const VALID_OWNERS = new Set(['me', 'partner']);
+const MAX_TIME_SLOT = DEFAULT_TIME_SLOTS.length;
 const VALID_COURSE_QUERY_MODES = new Set(['auto', 'current', 'next', 'today', 'remaining']);
 
 interface ScheduleCourseRecord {
@@ -117,15 +118,32 @@ function formatMinutes(minutes: number): string {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
-function getSlotMeta(slot: number) {
-  return COURSE_TIME_SLOTS.find((item) => item.key === slot) ?? null;
+function getSlotMeta(slot: number, timeSlots: { key: number; start: string; end: string }[]) {
+  return timeSlots.find((item) => item.key === slot) ?? null;
 }
 
-function getCourseRangeMinutes(course: ScheduleCourseRecord): { startMinutes: number; endMinutes: number } | null {
+async function loadTimeSlotsForOwner(owner: string): Promise<{ key: number; start: string; end: string }[]> {
+  try {
+    const [rows] = await pool.execute(
+      'SELECT slot_number, start_time, end_time FROM schedule_time_slots WHERE owner = ? ORDER BY slot_number',
+      [owner]
+    );
+    const slots = (rows as any[]).map((row) => ({
+      key: Number(row.slot_number),
+      start: String(row.start_time),
+      end: String(row.end_time),
+    }));
+    return slots.length > 0 ? slots : DEFAULT_TIME_SLOTS;
+  } catch {
+    return DEFAULT_TIME_SLOTS;
+  }
+}
+
+function getCourseRangeMinutes(course: ScheduleCourseRecord, timeSlots: { key: number; start: string; end: string }[]): { startMinutes: number; endMinutes: number } | null {
   const startSlot = course.time_slot[0];
   const endSlot = course.time_slot[course.time_slot.length - 1];
-  const startMeta = startSlot ? getSlotMeta(startSlot) : null;
-  const endMeta = endSlot ? getSlotMeta(endSlot) : null;
+  const startMeta = startSlot ? getSlotMeta(startSlot, timeSlots) : null;
+  const endMeta = endSlot ? getSlotMeta(endSlot, timeSlots) : null;
 
   if (!startMeta || !endMeta) {
     return null;
@@ -152,8 +170,8 @@ function formatSlotLabel(slots: number[]): string {
   return start === end ? `第${start}节` : `第${start}-${end}节`;
 }
 
-function mapCourseInfo(course: ScheduleCourseRecord) {
-  const range = getCourseRangeMinutes(course);
+function mapCourseInfo(course: ScheduleCourseRecord, timeSlots: { key: number; start: string; end: string }[]) {
+  const range = getCourseRangeMinutes(course, timeSlots);
 
   return {
     id: course.id,
@@ -362,6 +380,7 @@ router.get('/course-info', aiAuthMiddleware, async (req: Request, res: Response)
       ? req.query.time
       : dayjs().format('HH:mm');
     const mode = typeof req.query.mode === 'string' ? req.query.mode : 'auto';
+    const owner = typeof req.query.owner === 'string' && VALID_OWNERS.has(req.query.owner) ? req.query.owner : 'me';
 
     if (!VALID_COURSE_QUERY_MODES.has(mode)) {
       return res.status(400).json({
@@ -399,9 +418,11 @@ router.get('/course-info', aiAuthMiddleware, async (req: Request, res: Response)
     }
 
     const [rows] = await pool.execute(
-      'SELECT * FROM schedule_courses WHERE day_of_week = ?',
-      [dayOfWeek]
+      'SELECT * FROM schedule_courses WHERE day_of_week = ? AND owner = ?',
+      [dayOfWeek, owner]
     );
+
+    const ownerTimeSlots = await loadTimeSlotsForOwner(owner);
 
     const dayCourses = (rows as any[])
       .map(normalizeScheduleCourse)
@@ -409,12 +430,12 @@ router.get('/course-info', aiAuthMiddleware, async (req: Request, res: Response)
       .sort((left, right) => (left.time_slot[0] ?? 99) - (right.time_slot[0] ?? 99));
 
     const currentCourses = dayCourses.filter((course) => {
-      const range = getCourseRangeMinutes(course);
+      const range = getCourseRangeMinutes(course, ownerTimeSlots);
       return range !== null && currentMinutes >= range.startMinutes && currentMinutes <= range.endMinutes;
     });
 
     const nextCourse = dayCourses.find((course) => {
-      const range = getCourseRangeMinutes(course);
+      const range = getCourseRangeMinutes(course, ownerTimeSlots);
       return range !== null && range.startMinutes > currentMinutes;
     });
     const nextCourses = nextCourse
@@ -422,7 +443,7 @@ router.get('/course-info', aiAuthMiddleware, async (req: Request, res: Response)
       : [];
 
     const remainingCourses = dayCourses.filter((course) => {
-      const range = getCourseRangeMinutes(course);
+      const range = getCourseRangeMinutes(course, ownerTimeSlots);
       return range !== null && range.endMinutes >= currentMinutes;
     });
 
@@ -440,7 +461,8 @@ router.get('/course-info', aiAuthMiddleware, async (req: Request, res: Response)
 
     res.json({
       success: true,
-      courses: matchedCourses.map(mapCourseInfo),
+      owner,
+      courses: matchedCourses.map((c) => mapCourseInfo(c, ownerTimeSlots)),
     });
   } catch (error) {
     console.error('Error fetching course info:', error);
