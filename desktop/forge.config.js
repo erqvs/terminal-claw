@@ -10,10 +10,10 @@ const hasAppleNotarizeCredentials = Boolean(
 module.exports = {
   packagerConfig: {
     asar: true,
-    executableName: 'terminal-claw',
-    appBundleId: 'cn.imbecile.terminal-claw',
+    executableName: 'terminal-littlebaby',
+    appBundleId: 'cn.imbecile.terminal-littlebaby',
     appCategoryType: 'public.app-category.finance',
-    name: 'terminal-claw',
+    name: 'terminal-littlebaby',
     osxSign: hasAppleNotarizeCredentials ? true : undefined,
     osxNotarize: hasAppleNotarizeCredentials
       ? {
@@ -43,7 +43,7 @@ module.exports = {
       config: {
         repository: {
           owner: 'erqvs',
-          name: 'terminal-claw'
+          name: 'terminal-littlebaby'
         },
         prerelease: false,
         draft: false
