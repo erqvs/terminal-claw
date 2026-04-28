@@ -11,7 +11,7 @@ module.exports = {
   packagerConfig: {
     asar: true,
     executableName: 'terminal-littlebaby',
-    appBundleId: 'cn.example.terminal-littlebaby',
+    appBundleId: 'com.example.terminal-littlebaby',
     appCategoryType: 'public.app-category.finance',
     name: 'terminal-littlebaby',
     osxSign: hasAppleNotarizeCredentials ? true : undefined,

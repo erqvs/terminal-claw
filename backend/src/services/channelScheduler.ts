@@ -1,9 +1,11 @@
 import mysql from 'mysql2/promise';
 
-const COMPANY_CHANNEL_ID = 2;
-const PERSONAL_CHANNEL_ID = 1;
-const COMPANY_DAILY_LIMIT = 300;
+const COMPANY_CHANNEL_ID = Number(process.env.COMPANY_CHANNEL_ID) || 2;
+const PERSONAL_CHANNEL_ID = Number(process.env.PERSONAL_CHANNEL_ID) || 1;
+const COMPANY_DAILY_LIMIT = Number(process.env.COMPANY_DAILY_LIMIT) || 300;
 const CHECK_INTERVAL_MS = 60_000;
+const companyStart = Number(process.env.COMPANY_TIME_START) || 14;
+const companyEnd = Number(process.env.COMPANY_TIME_END) || 18;
 
 const PRICING: Record<string, { input_per_M: number; output_per_M: number }> = {
   'GLM-4.7': { input_per_M: 0, output_per_M: 0 },
@@ -35,7 +37,7 @@ async function getNewApiDb() {
   return mysql.createConnection({
     host: process.env.DB_HOST_NEWAPI || 'mysql',
     port: 3306,
-    user: 'root',
+    user: process.env.DB_USER_NEWAPI || 'root',
     password: process.env.DB_PASSWORD_NEWAPI || '',
     database: 'new_api',
   });
@@ -69,7 +71,7 @@ async function getCompanyDailyYuan(): Promise<number> {
 type DesiredChannel = 'company' | 'personal';
 
 function determineDesiredChannel(hour: number, companyDailyYuan: number): DesiredChannel {
-  const inCompanyTime = hour >= 14 && hour < 18;
+  const inCompanyTime = hour >= companyStart && hour < companyEnd;
   if (inCompanyTime && companyDailyYuan < COMPANY_DAILY_LIMIT) return 'company';
   return 'personal';
 }

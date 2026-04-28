@@ -26,7 +26,9 @@ function determinePath(
   personalUnlimited: boolean,
 ): 'company' | 'personal' {
   const { hour } = getBeijingDate();
-  const inCompanyTime = hour >= 14 && hour < 18;
+  const companyStart = Number(process.env.COMPANY_TIME_START) || 14;
+  const companyEnd = Number(process.env.COMPANY_TIME_END) || 18;
+  const inCompanyTime = hour >= companyStart && hour < companyEnd;
 
   if (inCompanyTime && companyDailyYuan < COMPANY_DAILY_LIMIT) {
     return 'company';
@@ -55,7 +57,7 @@ async function getNewApiDb() {
   return mysql.createConnection({
     host: process.env.DB_HOST_NEWAPI || 'mysql',
     port: 3306,
-    user: 'root',
+    user: process.env.DB_USER_NEWAPI || 'root',
     password: process.env.DB_PASSWORD_NEWAPI || '',
     database: 'new_api',
   });
@@ -67,7 +69,9 @@ router.get('/status', async (_req: Request, res: Response) => {
     conn = await getNewApiDb();
 
     const { date, hour } = getBeijingDate();
-    const inCompanyTime = hour >= 14 && hour < 18;
+  const companyStart = Number(process.env.COMPANY_TIME_START) || 14;
+  const companyEnd = Number(process.env.COMPANY_TIME_END) || 18;
+  const inCompanyTime = hour >= companyStart && hour < companyEnd;
 
     const [rows] = await conn.execute<mysql.RowDataPacket[]>(
       `SELECT channel_id, model_name, prompt_tokens, completion_tokens, created_at
@@ -117,14 +121,14 @@ router.get('/status', async (_req: Request, res: Response) => {
       current_path: currentPath,
       path_label: currentPath === 'company' ? '公司' : '个人',
       company: {
-        name: companyChannel?.name || '公司内网LiteLLM',
+        name: companyChannel?.name || 'Company Channel',
         daily_yuan: companyDailyYuan,
         total_yuan: companyTotalYuan,
         daily_limit_yuan: COMPANY_DAILY_LIMIT,
         models: companyChannel?.models || '',
       },
       personal: {
-        name: personalChannel?.name || '智谱CodingPlan',
+        name: personalChannel?.name || 'Personal Channel',
         daily_yuan: personalDailyYuan,
         total_yuan: personalTotalYuan,
         unlimited: true,
@@ -137,7 +141,7 @@ router.get('/status', async (_req: Request, res: Response) => {
         beijing_date: date,
         beijing_hour: hour,
         in_company_time: inCompanyTime,
-        company_time_range: '14:00-18:00',
+        company_time_range: `${companyStart}:00-${companyEnd}:00`,
       },
     });
   } catch (error: any) {

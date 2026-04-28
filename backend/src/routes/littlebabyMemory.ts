@@ -139,7 +139,7 @@ function buildFilesystemStatus() {
         },
         scan: {
           totalFiles: files.length,
-          issues: !fs.existsSync(MEMORY_DIR) ? ['memory directory missing (~/.littlebaby/workspace/memory)'] : [],
+          issues: !fs.existsSync(MEMORY_DIR) ? ['memory directory missing'] : [],
           files: files.map((f) => ({ name: f.name, path: f.path, size: f.size })),
           totalSize,
         },
