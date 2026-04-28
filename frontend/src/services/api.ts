@@ -759,3 +759,37 @@ export async function deleteLittleBabyMemoryFile(name: string): Promise<{ succes
   if (!res.ok) throw new Error(await readErrorMessage(res, '删除记忆文件失败'));
   return res.json();
 }
+
+export interface LlmUsageStatus {
+  current_path: 'company' | 'personal';
+  path_label: string;
+  company: {
+    name: string;
+    daily_yuan: number;
+    total_yuan: number;
+    daily_limit_yuan: number;
+    models: string;
+  };
+  personal: {
+    name: string;
+    daily_yuan: number;
+    total_yuan: number;
+    unlimited: boolean;
+    models: string;
+  };
+  pricing: Record<string, { input_per_M: number; output_per_M: number; unit: string }>;
+  time_info: {
+    beijing_date: string;
+    beijing_hour: number;
+    in_company_time: boolean;
+    company_time_range: string;
+  };
+}
+
+export async function getLlmUsageStatus(): Promise<LlmUsageStatus> {
+  const res = await authFetch(`${API_BASE}/llm-usage/status`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(await readErrorMessage(res, '获取 LLM 用量失败'));
+  return res.json();
+}

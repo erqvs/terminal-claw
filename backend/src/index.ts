@@ -14,7 +14,9 @@ import semesterRouter from './routes/semester';
 import timeSlotsRouter from './routes/timeSlots';
 import authRouter, { authMiddleware } from './routes/auth';
 import aiRouter from './routes/ai';
+import llmUsageRouter from './routes/llmUsage';
 import { validateSecurityConfiguration } from './utils/security';
+import { startChannelScheduler } from './services/channelScheduler';
 
 const app: Express = express();
 const PORT = process.env.PORT || 3000;
@@ -97,6 +99,7 @@ app.use('/api/digest-history', authMiddleware, digestHistoryRouter);
 app.use('/api/schedule', authMiddleware, scheduleRouter);
 app.use('/api/semester', authMiddleware, semesterRouter);
 app.use('/api/time-slots', authMiddleware, timeSlotsRouter);
+app.use('/api/llm-usage', authMiddleware, llmUsageRouter);
 
 // 全局错误处理
 app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
@@ -110,4 +113,5 @@ app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
 
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
+  startChannelScheduler();
 });

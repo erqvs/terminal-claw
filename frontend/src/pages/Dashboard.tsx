@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react';
-import { Card, Row, Col, Statistic, Table, Spin, message, Progress, List } from 'antd';
+import { Card, Row, Col, Statistic, Table, Spin, message, Progress, List, Tag } from 'antd';
+import {
+  CloudServerOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { ArrowDownIcon, WalletIcon, TargetIcon } from '../components/Icons';
 import TrendChart from '../components/TrendChart';
 import type { Transaction, Account, Goal } from '../types';
-import { getTransactions, getAccounts, getGoals } from '../services/api';
+import { getTransactions, getAccounts, getGoals, getLlmUsageStatus } from '../services/api';
+import type { LlmUsageStatus } from '../services/api';
 import { getDebtAvailableAmount, getDebtUsagePercent, getDebtUsedAmount } from '../utils/debts';
 
 export default function Dashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [llmUsage, setLlmUsage] = useState<LlmUsageStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,12 +28,14 @@ export default function Dashboard() {
       setLoading(true);
       const [transData, allAccountsData, goalsData] = await Promise.all([
         getTransactions(),
-        getAccounts(), // 获取所有账户（资产+负债）
+        getAccounts(),
         getGoals(),
       ]);
       setTransactions(transData);
       setAccounts(allAccountsData);
       setGoals(goalsData);
+
+      getLlmUsageStatus().then(setLlmUsage).catch(() => {});
     } catch (error) {
       message.error('加载数据失败');
     } finally {
@@ -103,6 +111,8 @@ export default function Dashboard() {
       <div style={{ marginBottom: 24 }}>
         <h2 style={{ margin: 0 }}>仪表盘</h2>
       </div>
+
+      {llmUsage && <LlmUsageCard usage={llmUsage} />}
 
       {loading ? (
         <Card style={{ minHeight: 360, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -271,5 +281,62 @@ export default function Dashboard() {
         </>
       )}
     </div>
+  );
+}
+
+function LlmUsageCard({ usage }: { usage: LlmUsageStatus }) {
+  const { current_path, path_label, company, personal } = usage;
+
+  const isCompany = current_path === 'company';
+  const companyPercent = Math.min((company.daily_yuan / company.daily_limit_yuan) * 100, 100);
+
+  const fmt = (v: number) => v < 0.01 && v > 0 ? v.toFixed(4) : v.toFixed(2);
+
+  return (
+    <Card
+      size="small"
+      style={{ marginBottom: 16 }}
+      bodyStyle={{ padding: '12px 16px' }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Tag
+            color={isCompany ? 'blue' : 'green'}
+            style={{ fontSize: 14, padding: '4px 12px', margin: 0 }}
+          >
+            {isCompany ? <CloudServerOutlined /> : <UserOutlined />} {path_label}
+          </Tag>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <CloudServerOutlined style={{ color: '#1890ff' }} />
+            <span style={{ fontSize: 13 }}>公司</span>
+            <span style={{ fontWeight: 'bold', color: '#1890ff' }}>¥{fmt(company.daily_yuan)}</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <UserOutlined style={{ color: '#52c41a' }} />
+            <span style={{ fontSize: 13 }}>个人</span>
+            <span style={{ fontWeight: 'bold', color: '#52c41a' }}>¥{fmt(personal.daily_yuan)} / ¥{fmt(company.total_yuan + personal.total_yuan)}</span>
+          </div>
+        </div>
+      </div>
+
+      {isCompany && (
+        <div style={{ marginTop: 8 }}>
+          <Progress
+            percent={companyPercent}
+            size="small"
+            showInfo={false}
+            strokeColor={companyPercent > 80 ? '#ff4d4f' : companyPercent > 50 ? '#faad14' : '#1890ff'}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#666', marginTop: 2 }}>
+            <span>公司当日已用 ¥{fmt(company.daily_yuan)}</span>
+            <span>上限 ¥{company.daily_limit_yuan}</span>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }
